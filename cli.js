@@ -1,6 +1,7 @@
 var BasicCard = require("./basiccard.js");
 var ClozeCard = require("./clozecard.js");
 var inquirer = require('inquirer');
+var fs = require('fs');
 
 //arrays to store users selected questions 
 var basicQuestions = [];
@@ -56,6 +57,9 @@ function createBasicQuestion(){
 			createBasicQuestion();
 		});
 		count++;
+	} else {
+		//adds the flashcards to json file 
+		fs.writeFile("basicQuestions.json", JSON.stringify(basicQuestions));
 	}
 }
 
@@ -69,6 +73,7 @@ function createClozeQuestion(){
 		});
 		count++;
 	}
+
 }
 
 //ask if the user wants to be quizzed or wants to create flash cards to quiz themselves on
@@ -84,9 +89,15 @@ inquirer.prompt(initialPrompt).then(function(answers){
 			}
 		});
 	} else {
-		//quizzing from existing flashcards
+		fs.readFile("basicQuestions.json", "utf8", function(error,data) {
+			data = JSON.parse(data);
+			if(error){
+				console.log(error);
+			} else{
+				data.forEach(function(element){
+					console.log(element.front);
+				});
+			}
+		});
 	}
 });
-
-
-
