@@ -51,10 +51,21 @@ function createBasicQuestion(){
 	if(count < 5){
 		inquirer.prompt(basicCardQuestions).then(function(answers){
 			var newBasicCard = new BasicCard(answers.basicQuestion, answers.answer);
-			console.log(newBasicCard);
 			basicQuestions.push(newBasicCard);
 			console.log(basicQuestions);
 			createBasicQuestion();
+		});
+		count++;
+	}
+}
+
+function createClozeQuestion(){
+	if(count < 5){
+		inquirer.prompt(clozeCardQuestions).then(function(answers){
+			var newClozeCard = new ClozeCard(answers.clozeQuestion, answers.answer);
+			clozeQuestions.push(newClozeCard);
+			console.log(clozeQuestions);
+			createClozeQuestion();
 		});
 		count++;
 	}
@@ -69,11 +80,7 @@ inquirer.prompt(initialPrompt).then(function(answers){
 			if (answers.cardType === 'Basic'){
 				createBasicQuestion();
 			} else {
-				inquirer.prompt(clozeCardQuestions).then(function(answers){
-					var newClozeCard = new ClozeCard(answers.clozeQuestion, answers.answer);
-					console.log(newClozeCard);
-					console.log(answers);
-				});
+				createClozeQuestion();
 			}
 		});
 	} else {
