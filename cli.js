@@ -27,13 +27,13 @@ var initialPrompt = {
 	message: 'Do you want to quiz yourself, or create a new set of flashcards?',
 	choices: ['Quiz', 'Create New']
 };
+
 var flashcardTypeQuestion = 	{
 	type:'list',
 	name: 'cardType',
 	message: 'Choose what kind of flashcard you want to make',
 	choices: ['Basic','Cloze']
 };
-
 
 var clozeCardQuestions = 	[{
 	type:'input',
@@ -73,14 +73,40 @@ function createClozeQuestion(){
 		});
 		count++;
 	}
+}
 
+function createQuizQuestion(){
+	fs.readFile("basicQuestions.json", "utf8", function(error,data) {
+		data = JSON.parse(data);
+		if(count<5){
+			var question = data[count].front;
+			var answer = data[count].back;
+			if(error){
+				console.log(error);
+			} else{
+				inquirer.prompt([{
+					type: 'input',
+					name: 'currentGuess',
+					message: question
+				}]).then(function(answers){
+					console.log(answers);
+					if(answers.currentGuess === answer){
+						console.log('you guessed right');
+					} else {
+						console.log('incorrect');
+					}
+					count++;
+					createQuizQuestion();
+				});
+			}
+		}
+	});
 }
 
 //ask if the user wants to be quizzed or wants to create flash cards to quiz themselves on
 inquirer.prompt(initialPrompt).then(function(answers){
 	if(answers.quizOrCreate === 'Create New'){
 		//creating flash cards
-
 		inquirer.prompt(flashcardTypeQuestion).then(function(answers){
 			if (answers.cardType === 'Basic'){
 				createBasicQuestion();
@@ -89,15 +115,6 @@ inquirer.prompt(initialPrompt).then(function(answers){
 			}
 		});
 	} else {
-		fs.readFile("basicQuestions.json", "utf8", function(error,data) {
-			data = JSON.parse(data);
-			if(error){
-				console.log(error);
-			} else{
-				data.forEach(function(element){
-					console.log(element.front);
-				});
-			}
-		});
+		createQuizQuestion();
 	}
 });
