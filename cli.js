@@ -1,4 +1,6 @@
+//basic card constructor
 var BasicCard = require("./basiccard.js");
+//cloze card constructor
 var ClozeCard = require("./clozecard.js");
 var inquirer = require('inquirer');
 var fs = require('fs');
@@ -7,8 +9,10 @@ var fs = require('fs');
 var basicQuestions = [];
 var clozeQuestions = [];
 
+//number of flashcards we are starting with 
 var count = 0;
 
+//inquirer prompts
 var basicCardQuestions = 	[{
 	type:'input',
 	name: 'basicQuestion',
@@ -18,14 +22,20 @@ var basicCardQuestions = 	[{
 	type:'input',
 	name: 'answer',
 	message: 'Type in the answer'
-}
-];
+}];
 
 var initialPrompt = {
 	type:'list',
 	name:'quizOrCreate',
 	message: 'Do you want to quiz yourself, or create a new set of flashcards?',
 	choices: ['Quiz', 'Create New']
+};
+
+var secondPrompt = {
+	type:'list',
+	name: 'basicOrCloze',
+	message: 'Do you want to quiz yourself on the basic or cloze set of flashcards?',
+	choices: ['Basic', 'Cloze']
 };
 
 var flashcardTypeQuestion = 	{
@@ -53,68 +63,85 @@ function createBasicQuestion(){
 		inquirer.prompt(basicCardQuestions).then(function(answers){
 			var newBasicCard = new BasicCard(answers.basicQuestion, answers.answer);
 			basicQuestions.push(newBasicCard);
-			console.log(basicQuestions);
 			createBasicQuestion();
 		});
 		count++;
 	} else {
-		//adds the flashcards to json file 
+		//once all 5 flashcards are created, adds the flashcards to json file 
 		fs.writeFile("basicQuestions.json", JSON.stringify(basicQuestions));
 	}
 }
-
+//same function as above but for cloze cards
 function createClozeQuestion(){
 	if(count < 5){
 		inquirer.prompt(clozeCardQuestions).then(function(answers){
 			var newClozeCard = new ClozeCard(answers.clozeQuestion, answers.answer);
 			clozeQuestions.push(newClozeCard);
-			console.log(clozeQuestions);
 			createClozeQuestion();
 		});
 		count++;
+	} else {
+		fs.writeFile("clozeQuestions.json", JSON.stringify(clozeQuestions));
 	}
 }
-
-function createQuizQuestion(){
-	fs.readFile("basicQuestions.json", "utf8", function(error,data) {
-		data = JSON.parse(data);
-		if(count<5){
-			var question = data[count].front;
-			var answer = data[count].back;
-			if(error){
-				console.log(error);
-			} else{
-				inquirer.prompt([{
-					type: 'input',
-					name: 'currentGuess',
-					message: question
-				}]).then(function(answers){
-					console.log(answers);
-					if(answers.currentGuess === answer){
-						console.log('you guessed right');
-					} else {
-						console.log('incorrect');
-					}
-					count++;
-					createQuizQuestion();
-				});
+//recursive function that runs the quiz, tqkes in the json file as a parameter and reads from that file
+function executeQuiz(file){
+	var question;
+	var answer;
+	fs.readFile(file, "utf8", function(error,data) {
+			data = JSON.parse(data);
+			if(count<5){
+				if(file === 'basicQuestions.json'){
+					question = data[count].front;
+					answer = data[count].back;
+				} else {
+					question = data[count].partial;
+					answer = data[count].cloze;
+				}
+				if(error){
+					console.log(error);
+				} else{
+					inquirer.prompt([{
+						type: 'input',
+						name: 'currentGuess',
+						message: question
+					}]).then(function(answers){
+						if(answers.currentGuess === answer){
+							console.log('you guessed right');
+						} else {
+							console.log('incorrect');
+						}
+						count++;
+						executeQuiz(file);
+					});
+				}
 			}
+		});
+}
+
+//initial function that asks if the user wants to be quizzed or wants to create flash cards to quiz themselves on
+function initFlashcards(){
+	inquirer.prompt(initialPrompt).then(function(answers){
+		if(answers.quizOrCreate === 'Create New'){
+			//creating flash cards
+			inquirer.prompt(flashcardTypeQuestion).then(function(answers){
+				if (answers.cardType === 'Basic'){
+					createBasicQuestion();
+				} else {
+					createClozeQuestion();
+				}
+			});
+		} else {
+			//prompts for user input on which type of card they want to quiz on and then executes corresponding quiz 
+			inquirer.prompt(secondPrompt).then(function(answers){
+				if(answers.basicOrCloze === 'Basic'){
+					executeQuiz("basicQuestions.json");
+				} else {
+					executeQuiz("clozeQuestions.json");
+				}
+			});
 		}
 	});
 }
 
-//ask if the user wants to be quizzed or wants to create flash cards to quiz themselves on
-inquirer.prompt(initialPrompt).then(function(answers){
-	if(answers.quizOrCreate === 'Create New'){
-		//creating flash cards
-		inquirer.prompt(flashcardTypeQuestion).then(function(answers){
-			if (answers.cardType === 'Basic'){
-				createBasicQuestion();
-			} else {
-				createClozeQuestion();
-			}
-		});
-	} else {
-		createQuizQuestion();
-	}
-});
+initFlashcards();
